@@ -1,0 +1,12 @@
+{
+  "atDirectives": [
+    {
+      "name": "@theme",
+      "description": "Defines your color palette, fonts, and other design tokens in Tailwind CSS v4."
+    },
+    {
+      "name": "@import",
+      "description": "Standard CSS import, used by Tailwind CSS v4 to include the main stylesheet."
+    }
+  ]
+}
