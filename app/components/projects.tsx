@@ -18,7 +18,7 @@ const featuredProjects = [
         accent: "#00E5FF",
         description: "Next.js platform enabling businesses to discover high-intent leads using Google Gemini API and SERP extraction.",
         github: "https://github.com/mohrashard/bizfinder-ai",
-        liveDemo: "https://thebizfinderai.vercel.app/",
+        liveDemo: "https://bizfinder.mohamedrashard.dev/",
         metrics: ["GEMINI API", "NEXT.JS 15", "LIVE"]
     },
     {
@@ -196,9 +196,9 @@ export default function Projects() {
 
             {/* ── THE GSAP PINNED BACKGROUND ─────────────────────────────────── */}
             <div ref={bgRef} className="absolute top-0 left-0 w-full h-screen overflow-hidden z-0 pointer-events-none">
-                <canvas 
-                    ref={canvasRef} 
-                    className="absolute inset-0 w-full h-full object-cover" 
+                <canvas
+                    ref={canvasRef}
+                    className="absolute inset-0 w-full h-full object-cover"
                     aria-label="3D background animation showing project evolution"
                 />
                 <div className="absolute inset-0 bg-gradient-to-b from-[#060608] via-[#060608]/75 to-[#060608] backdrop-blur-[2px]" />
