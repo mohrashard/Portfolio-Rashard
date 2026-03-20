@@ -23,6 +23,11 @@ export const metadata: Metadata = {
     "Gemini API integration"
   ],
   authors: [{ name: "Mohamed Rashard Rizmi", url: "https://rizmi.dev" }],
+  icons: {
+    icon: "/mrrlogo.png",
+    shortcut: "/mrrlogo.png",
+    apple: "/mrrlogo.png",
+  },
   openGraph: {
     title: "Mohamed Rashard | Software Engineer & AI Architect",
     description: "Architecting Intelligence through High-Performance Neural Code.",
@@ -30,11 +35,18 @@ export const metadata: Metadata = {
     siteName: "MRR Portfolio",
     locale: "en_US",
     type: "website",
+    images: [{
+      url: "/mrrlogo.png",
+      width: 1200,
+      height: 630,
+      alt: "Mohamed Rashard Rizmi Portfolio Logo",
+    }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Mohamed Rashard | AI & Full-Stack Architect",
     description: "Building production-grade AI ecosystems and high-performance web applications.",
+    images: ["/mrrlogo.png"],
   },
   robots: {
     index: true,
@@ -53,6 +65,7 @@ export default function RootLayout({
     "name": "Mohamed Rashard Rizmi",
     "jobTitle": "Software Engineer & AI Architect",
     "url": "https://rizmi.dev",
+    "image": "https://rizmi.dev/mrrlogo.png",
     "sameAs": [
       "https://github.com/mohrashard",
       "https://www.linkedin.com/in/mohamedrashard",
