@@ -28,23 +28,38 @@ export default function Contact() {
 
         const render = (index: number) => {
             const canvas = canvasRef.current;
-            const context = canvas?.getContext('2d');
+            // ── APPLE-TIER CONTEXT: alpha:false + desynchronized:true
+            const context = canvas?.getContext('2d', { alpha: false, desynchronized: true });
             if (!canvas || !context) return;
 
             const img = imagesRef.current[Math.round(index)];
             if (!img || !img.complete || img.naturalWidth === 0) return;
-            const r = Math.max(canvas.width / img.width, canvas.height / img.height);
-            const cx = (canvas.width - img.width * r) / 2;
-            const cy = (canvas.height - img.height * r) / 2;
+            const dpr = parseFloat(canvas.dataset.dpr || '1');
+            const displayW = canvas.width / dpr;
+            const displayH = canvas.height / dpr;
+            const r = Math.max(displayW / img.width, displayH / img.height);
+            const cx = (displayW - img.width * r) / 2;
+            const cy = (displayH - img.height * r) / 2;
             context.drawImage(img, 0, 0, img.width, img.height, cx, cy, img.width * r, img.height * r);
         };
 
+        let lastWidth = 0;
         const setSize = () => {
             const canvas = canvasRef.current;
-            const context = canvas?.getContext('2d');
+            const context = canvas?.getContext('2d', { alpha: false, desynchronized: true });
             if (!canvas || !context) return;
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            if (window.innerWidth === lastWidth) return;
+            lastWidth = window.innerWidth;
+            const isMobileView = window.innerWidth < 768;
+            const dpr = isMobileView
+                ? Math.min(window.devicePixelRatio || 1, 1.5)
+                : Math.min(window.devicePixelRatio || 1, 2);
+            canvas.dataset.dpr = String(dpr);
+            canvas.width = window.innerWidth * dpr;
+            canvas.height = window.innerHeight * dpr;
+            canvas.style.width = '100vw';
+            canvas.style.height = '100dvh';
+            context.scale(dpr, dpr);
             context.imageSmoothingEnabled = true;
             context.imageSmoothingQuality = 'high';
         };
@@ -69,12 +84,21 @@ export default function Contact() {
                     imagesRef.current[0] = firstImg;
                     render(0);
 
-                    for (let i = 1; i < totalFrames; i++) {
-                        const img = new Image();
-                        img.src = currentFrame(i * frameStep);
-                        img.decode().catch(() => {});
-                        imagesRef.current[i] = img;
-                    }
+                    const scheduleIdleDecode = (i: number) => {
+                        if (i >= totalFrames) return;
+                        const decode = () => {
+                            const img = new Image();
+                            img.src = currentFrame(i * frameStep);
+                            imagesRef.current[i] = img;
+                            img.decode().catch(() => {}).finally(() => scheduleIdleDecode(i + 1));
+                        };
+                        if ('requestIdleCallback' in window) {
+                            requestIdleCallback(decode, { timeout: 300 });
+                        } else {
+                            setTimeout(decode, 0);
+                        }
+                    };
+                    scheduleIdleDecode(1);
                 };
             };
 
@@ -89,7 +113,8 @@ export default function Contact() {
                 onLeaveBack: () => { imagesRef.current = []; }
             });
 
-            // Scrub video as you scroll through the section
+            // ── rAF-batched render: prevents GSAP firing faster than screen refresh rate
+            let renderId: number;
             gsap.to(seq, {
                 frame: totalFrames - 1,
                 snap: "frame",
@@ -101,7 +126,10 @@ export default function Contact() {
                     scrub: 1.5,
                     onRefresh: () => render(seq.frame)
                 },
-                onUpdate: () => render(seq.frame)
+                onUpdate: () => {
+                    if (renderId) cancelAnimationFrame(renderId);
+                    renderId = requestAnimationFrame(() => render(seq.frame));
+                }
             });
 
             // ── Theater Curtain Headline Reveal ──

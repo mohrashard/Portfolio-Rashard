@@ -22,7 +22,7 @@ interface SmoothScrollProps {
 const lenisOptions: any = {
     lerp: 0.07,
     duration: 1.5,
-    smoothTouch: true,
+    smoothTouch: false,
 };
 
 export default function SmoothScroll({ children }: SmoothScrollProps) {

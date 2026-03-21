@@ -36,25 +36,42 @@ export default function Hero() {
 
         const render = (index: number) => {
             const canvas = canvasRef.current;
-            const context = canvas?.getContext('2d');
+            // ── APPLE-TIER CONTEXT: alpha:false skips transparency compositing (-30% GPU cost)
+            // desynchronized:true paints direct to screen, bypassing compositor queue
+            const context = canvas?.getContext('2d', { alpha: false, desynchronized: true });
             if (!canvas || !context) return;
 
             const img = imagesRef.current[Math.round(index)];
             if (!img || !img.complete || img.naturalWidth === 0) return;
 
-
-            const r = Math.max(canvas.width / img.width, canvas.height / img.height);
-            const cx = (canvas.width - img.width * r) / 2;
-            const cy = (canvas.height - img.height * r) / 2;
+            const dpr = parseFloat(canvas.dataset.dpr || '1');
+            const displayW = canvas.width / dpr;
+            const displayH = canvas.height / dpr;
+            const r = Math.max(displayW / img.width, displayH / img.height);
+            const cx = (displayW - img.width * r) / 2;
+            const cy = (displayH - img.height * r) / 2;
             context.drawImage(img, 0, 0, img.width, img.height, cx, cy, img.width * r, img.height * r);
         };
 
+        // Track last width to prevent Y-axis resize thrashing on mobile (address bar show/hide)
+        let lastWidth = 0;
         const setCanvasSize = () => {
             const canvas = canvasRef.current;
-            const context = canvas?.getContext('2d');
+            const context = canvas?.getContext('2d', { alpha: false, desynchronized: true });
             if (!canvas || !context) return;
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            if (window.innerWidth === lastWidth) return; // Only recalculate on width changes
+            lastWidth = window.innerWidth;
+            // Cap DPR: 1.5x on mobile saves significant GPU memory vs native 3x
+            const isMobileView = window.innerWidth < 768;
+            const dpr = isMobileView
+                ? Math.min(window.devicePixelRatio || 1, 1.5)
+                : Math.min(window.devicePixelRatio || 1, 2);
+            canvas.dataset.dpr = String(dpr);
+            canvas.width = window.innerWidth * dpr;
+            canvas.height = window.innerHeight * dpr;
+            canvas.style.width = '100vw';
+            canvas.style.height = '100dvh';
+            context.scale(dpr, dpr);
             context.imageSmoothingEnabled = true;
             context.imageSmoothingQuality = 'high';
         };
@@ -79,12 +96,22 @@ export default function Hero() {
                     imagesRef.current[0] = firstImg;
                     render(0);
 
-                    for (let i = 1; i < totalFrames; i++) {
-                        const img = new Image();
-                        img.src = currentFrame(i * frameStep);
-                        img.decode().catch(() => {});
-                        imagesRef.current[i] = img;
-                    }
+                    // Throttle decoding via requestIdleCallback so the scroll thread stays free
+                    const scheduleIdleDecode = (i: number) => {
+                        if (i >= totalFrames) return;
+                        const decode = () => {
+                            const img = new Image();
+                            img.src = currentFrame(i * frameStep);
+                            imagesRef.current[i] = img;
+                            img.decode().catch(() => {}).finally(() => scheduleIdleDecode(i + 1));
+                        };
+                        if ('requestIdleCallback' in window) {
+                            requestIdleCallback(decode, { timeout: 300 });
+                        } else {
+                            setTimeout(decode, 0);
+                        }
+                    };
+                    scheduleIdleDecode(1);
                 };
             };
 
@@ -134,6 +161,8 @@ export default function Hero() {
                 },
             });
 
+            // ── rAF-batched render: prevents GSAP firing faster than screen refresh rate
+            let renderId: number;
             masterTL.to(
                 seq,
                 {
@@ -141,7 +170,10 @@ export default function Hero() {
                     snap: 'frame',
                     ease: 'none',
                     duration: 10,
-                    onUpdate: () => render(seq.frame),
+                    onUpdate: () => {
+                        if (renderId) cancelAnimationFrame(renderId);
+                        renderId = requestAnimationFrame(() => render(seq.frame));
+                    },
                 },
                 0
             );
