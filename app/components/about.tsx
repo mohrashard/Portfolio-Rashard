@@ -55,27 +55,42 @@ export default function About() {
             context.imageSmoothingQuality = 'high';
         };
 
-        // ── 1. JUST-IN-TIME LOADING ──────────────────────────────────────
-        const observer = new IntersectionObserver(([entry]) => {
-            if (entry.isIntersecting) {
-                if (imagesRef.current.length === 0) {
-                    for (let i = 0; i < ABOUT_FRAME_COUNT; i++) {
-                        const img = new Image();
-                        img.src = currentFrame(i);
-                        img.decode().then(() => { if (i === 0) render(0); }).catch(() => {});
-                        imagesRef.current.push(img);
-                    }
-                }
-            } else {
-                imagesRef.current = []; // RAM Purge
-            }
-        }, { rootMargin: '800px' });
-
-        observer.observe(container);
-
         // ── 2. GSAP CONTEXT ──────────────────────────────────────────────
         ctx = gsap.context(() => {
             setSize();
+
+            const isMobile = window.innerWidth < 768;
+            const frameStep = isMobile ? 2 : 1;
+            const totalFrames = Math.floor((ABOUT_FRAME_COUNT - 1) / frameStep) + 1;
+
+            const loadImages = () => {
+                if (imagesRef.current.length > 0) return;
+
+                const firstImg = new Image();
+                firstImg.src = currentFrame(0);
+                firstImg.onload = () => {
+                    imagesRef.current.push(firstImg);
+                    render(0);
+
+                    for (let i = 1; i < totalFrames; i++) {
+                        const img = new Image();
+                        img.src = currentFrame(i * frameStep);
+                        img.decode().catch(() => {});
+                        imagesRef.current.push(img);
+                    }
+                };
+            };
+
+            // ── 1. JUST-IN-TIME LOADING VIA SCROLLTRIGGER ──────────────────
+            ScrollTrigger.create({
+                trigger: container,
+                start: "top bottom+=1000px",
+                end: "bottom top-=1000px",
+                onEnter: loadImages,
+                onEnterBack: loadImages,
+                onLeave: () => { imagesRef.current = []; },
+                onLeaveBack: () => { imagesRef.current = []; }
+            });
 
             const tl2 = gsap.timeline({
                 scrollTrigger: {
@@ -88,7 +103,7 @@ export default function About() {
                 }
             });
 
-            tl2.to(seq, { frame: ABOUT_FRAME_COUNT - 1, snap: 'frame', ease: 'none', duration: 10, onUpdate: () => render(seq.frame) }, 0);
+            tl2.to(seq, { frame: totalFrames - 1, snap: 'frame', ease: 'none', duration: 10, onUpdate: () => render(seq.frame) }, 0);
 
             tl2.fromTo(headerRef.current, { opacity: 0, y: 30, filter: 'blur(10px)' }, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 1.5, ease: 'power3.out' }, 0.5);
             tl2.fromTo(block1Ref.current, { opacity: 0, x: 40 }, { opacity: 1, x: 0, duration: 1.5, ease: 'power3.out' }, 2.0);
@@ -105,7 +120,6 @@ export default function About() {
         }, container);
 
         return () => {
-            observer.disconnect();
             ctx.revert();
             imagesRef.current = [];
         };

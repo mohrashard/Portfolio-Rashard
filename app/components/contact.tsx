@@ -50,31 +50,46 @@ export default function Contact() {
             context.imageSmoothingQuality = 'high';
         };
 
-        // ── 1. JUST-IN-TIME LOADING ──────────────────────────────────────
-        const observer = new IntersectionObserver(([entry]) => {
-            if (entry.isIntersecting) {
-                if (imagesRef.current.length === 0) {
-                    for (let i = 0; i < CONTACT_FRAME_COUNT; i++) {
-                        const img = new Image();
-                        img.src = currentFrame(i);
-                        img.decode().then(() => { if (i === 0) render(0); }).catch(() => {});
-                        imagesRef.current.push(img);
-                    }
-                }
-            } else {
-                imagesRef.current = []; // RAM Purge
-            }
-        }, { rootMargin: '800px' });
-
-        observer.observe(container);
-
         // ── 2. GSAP CONTEXT ──────────────────────────────────────────────
         ctx = gsap.context(() => {
             setSize();
 
+            const isMobile = window.innerWidth < 768;
+            const frameStep = isMobile ? 2 : 1;
+            const totalFrames = Math.floor((CONTACT_FRAME_COUNT - 1) / frameStep) + 1;
+
+            const loadImages = () => {
+                if (imagesRef.current.length > 0) return;
+
+                const firstImg = new Image();
+                firstImg.src = currentFrame(0);
+                firstImg.onload = () => {
+                    imagesRef.current.push(firstImg);
+                    render(0);
+
+                    for (let i = 1; i < totalFrames; i++) {
+                        const img = new Image();
+                        img.src = currentFrame(i * frameStep);
+                        img.decode().catch(() => {});
+                        imagesRef.current.push(img);
+                    }
+                };
+            };
+
+            // ── 1. JUST-IN-TIME LOADING VIA SCROLLTRIGGER ──────────────────
+            ScrollTrigger.create({
+                trigger: container,
+                start: "top bottom+=1000px",
+                end: "bottom top-=1000px",
+                onEnter: loadImages,
+                onEnterBack: loadImages,
+                onLeave: () => { imagesRef.current = []; },
+                onLeaveBack: () => { imagesRef.current = []; }
+            });
+
             // Scrub video as you scroll through the section
             gsap.to(seq, {
-                frame: CONTACT_FRAME_COUNT - 1,
+                frame: totalFrames - 1,
                 snap: "frame",
                 ease: "none",
                 scrollTrigger: {
@@ -150,7 +165,6 @@ export default function Contact() {
         }, container);
 
         return () => {
-            observer.disconnect();
             ctx.revert();
             imagesRef.current = [];
         };

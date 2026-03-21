@@ -2,6 +2,13 @@
 
 import React, { useEffect, useRef } from "react";
 import gsap from "gsap";
+import { ScrollTrigger } from "gsap/all";
+
+if (typeof window !== "undefined") {
+    gsap.registerPlugin(ScrollTrigger);
+    ScrollTrigger.config({ ignoreMobileResize: true });
+    ScrollTrigger.normalizeScroll(true);
+}
 
 // Import your modular sections
 import Navbar from "./components/navbar";
