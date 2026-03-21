@@ -40,7 +40,7 @@ export default function Hero() {
             if (!canvas || !context) return;
 
             const img = imagesRef.current[Math.round(index)];
-            if (!img?.complete || img.naturalWidth === 0) return;
+            if (!img || !img.complete || img.naturalWidth === 0) return;
 
 
             const r = Math.max(canvas.width / img.width, canvas.height / img.height);
@@ -68,19 +68,22 @@ export default function Hero() {
             const totalFrames = Math.floor((FRAME_COUNT - 1) / frameStep) + 1;
 
             const loadImages = () => {
-                if (imagesRef.current.length > 0) return;
+                if (imagesRef.current[0]) return;
+
+                // Pre-allocate array to totalFrames length to prevent index-based race condition
+                imagesRef.current = new Array(totalFrames);
 
                 const firstImg = new Image();
                 firstImg.src = currentFrame(0);
                 firstImg.onload = () => {
-                    imagesRef.current.push(firstImg);
+                    imagesRef.current[0] = firstImg;
                     render(0);
 
                     for (let i = 1; i < totalFrames; i++) {
                         const img = new Image();
                         img.src = currentFrame(i * frameStep);
                         img.decode().catch(() => {});
-                        imagesRef.current.push(img);
+                        imagesRef.current[i] = img;
                     }
                 };
             };

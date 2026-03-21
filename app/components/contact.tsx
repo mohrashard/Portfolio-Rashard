@@ -32,12 +32,11 @@ export default function Contact() {
             if (!canvas || !context) return;
 
             const img = imagesRef.current[Math.round(index)];
-            if (img && img.complete && img.naturalWidth !== 0) {
-                const r = Math.max(canvas.width / img.width, canvas.height / img.height);
-                const cx = (canvas.width - img.width * r) / 2;
-                const cy = (canvas.height - img.height * r) / 2;
-                context.drawImage(img, 0, 0, img.width, img.height, cx, cy, img.width * r, img.height * r);
-            }
+            if (!img || !img.complete || img.naturalWidth === 0) return;
+            const r = Math.max(canvas.width / img.width, canvas.height / img.height);
+            const cx = (canvas.width - img.width * r) / 2;
+            const cy = (canvas.height - img.height * r) / 2;
+            context.drawImage(img, 0, 0, img.width, img.height, cx, cy, img.width * r, img.height * r);
         };
 
         const setSize = () => {
@@ -59,19 +58,22 @@ export default function Contact() {
             const totalFrames = Math.floor((CONTACT_FRAME_COUNT - 1) / frameStep) + 1;
 
             const loadImages = () => {
-                if (imagesRef.current.length > 0) return;
+                if (imagesRef.current[0]) return;
+
+                // Pre-allocate array to totalFrames length to prevent index-based race condition
+                imagesRef.current = new Array(totalFrames);
 
                 const firstImg = new Image();
                 firstImg.src = currentFrame(0);
                 firstImg.onload = () => {
-                    imagesRef.current.push(firstImg);
+                    imagesRef.current[0] = firstImg;
                     render(0);
 
                     for (let i = 1; i < totalFrames; i++) {
                         const img = new Image();
                         img.src = currentFrame(i * frameStep);
                         img.decode().catch(() => {});
-                        imagesRef.current.push(img);
+                        imagesRef.current[i] = img;
                     }
                 };
             };

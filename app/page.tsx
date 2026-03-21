@@ -7,7 +7,6 @@ import { ScrollTrigger } from "gsap/all";
 if (typeof window !== "undefined") {
     gsap.registerPlugin(ScrollTrigger);
     ScrollTrigger.config({ ignoreMobileResize: true });
-    ScrollTrigger.normalizeScroll(true);
 }
 
 // Import your modular sections

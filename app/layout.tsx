@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Syne, DM_Mono } from "next/font/google";
 import "./globals.css";
+import SmoothScroll from "./components/SmoothScroll";
 
 const syne = Syne({ subsets: ["latin"], variable: "--font-syne" });
 const dmMono = DM_Mono({
@@ -101,7 +102,9 @@ export default function RootLayout({
         />
       </head>
       <body className={`${syne.variable} ${dmMono.variable} antialiased bg-[#060608]`}>
-        {children}
+        <SmoothScroll>
+          {children}
+        </SmoothScroll>
       </body>
     </html>
   );
