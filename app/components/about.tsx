@@ -10,6 +10,12 @@ if (typeof window !== 'undefined') {
 
 const ABOUT_FRAME_COUNT = 121;
 
+// ── SAFARI POLYFILL: requestIdleCallback is undefined on WebKit/iOS ───────────
+const requestIdle: (cb: () => void, opts?: { timeout: number }) => void =
+    typeof window !== 'undefined' && 'requestIdleCallback' in window
+        ? (window as any).requestIdleCallback
+        : (cb: () => void) => setTimeout(cb, 1);
+
 export default function About() {
     const containerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -22,6 +28,8 @@ export default function About() {
     const btnRef = useRef<HTMLDivElement>(null);
 
     const imagesRef = useRef<HTMLImageElement[]>([]);
+    // ── useRef for rAF ID to survive re-renders
+    const renderIdRef = useRef<number | null>(null);
 
     useEffect(() => {
         const container = containerRef.current;
@@ -37,7 +45,7 @@ export default function About() {
             const context = canvas?.getContext('2d', { alpha: false, desynchronized: true });
             if (!canvas || !context) return;
 
-            const img = imagesRef.current[Math.round(index)];
+            const img = imagesRef.current[Math.min(Math.max(Math.round(index), 0), imagesRef.current.length - 1)];
             if (!img || !img.complete || img.naturalWidth === 0) return;
             const dpr = parseFloat(canvas.dataset.dpr || '1');
             const displayW = canvas.width / dpr;
@@ -97,11 +105,7 @@ export default function About() {
                             imagesRef.current[i] = img;
                             img.decode().catch(() => {}).finally(() => scheduleIdleDecode(i + 1));
                         };
-                        if ('requestIdleCallback' in window) {
-                            requestIdleCallback(decode, { timeout: 300 });
-                        } else {
-                            setTimeout(decode, 0);
-                        }
+                        requestIdle(decode, { timeout: 300 });
                     };
                     scheduleIdleDecode(1);
                 };
@@ -130,10 +134,9 @@ export default function About() {
             });
 
             // ── rAF-batched render: prevents GSAP firing faster than screen refresh rate
-            let renderId: number;
             tl2.to(seq, { frame: totalFrames - 1, snap: 'frame', ease: 'none', duration: 10, onUpdate: () => {
-                if (renderId) cancelAnimationFrame(renderId);
-                renderId = requestAnimationFrame(() => render(seq.frame));
+                if (renderIdRef.current !== null) cancelAnimationFrame(renderIdRef.current);
+                renderIdRef.current = requestAnimationFrame(() => render(seq.frame));
             } }, 0);
 
             tl2.fromTo(headerRef.current, { opacity: 0, y: 30, filter: 'blur(10px)' }, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 1.5, ease: 'power3.out' }, 0.5);

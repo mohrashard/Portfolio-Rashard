@@ -10,6 +10,13 @@ if (typeof window !== 'undefined') {
 
 const FRAME_COUNT = 121;
 
+// ── SAFARI POLYFILL: requestIdleCallback is undefined on WebKit/iOS ───────────
+// Safari will silently crash the decode chain without this guard.
+const requestIdle: (cb: () => void, opts?: { timeout: number }) => void =
+    typeof window !== 'undefined' && 'requestIdleCallback' in window
+        ? (window as any).requestIdleCallback
+        : (cb: () => void) => setTimeout(cb, 1);
+
 export default function Hero() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -23,6 +30,8 @@ export default function Hero() {
     const roleRef = useRef<HTMLParagraphElement>(null);
 
     const imagesRef = useRef<HTMLImageElement[]>([]);
+    // ── useRef for rAF ID: persists across renders so cancelAnimationFrame clears the right ID
+    const renderIdRef = useRef<number | null>(null);
 
     useEffect(() => {
         const container = containerRef.current;
@@ -41,7 +50,7 @@ export default function Hero() {
             const context = canvas?.getContext('2d', { alpha: false, desynchronized: true });
             if (!canvas || !context) return;
 
-            const img = imagesRef.current[Math.round(index)];
+            const img = imagesRef.current[Math.min(Math.max(Math.round(index), 0), imagesRef.current.length - 1)];
             if (!img || !img.complete || img.naturalWidth === 0) return;
 
             const dpr = parseFloat(canvas.dataset.dpr || '1');
@@ -105,11 +114,7 @@ export default function Hero() {
                             imagesRef.current[i] = img;
                             img.decode().catch(() => {}).finally(() => scheduleIdleDecode(i + 1));
                         };
-                        if ('requestIdleCallback' in window) {
-                            requestIdleCallback(decode, { timeout: 300 });
-                        } else {
-                            setTimeout(decode, 0);
-                        }
+                        requestIdle(decode, { timeout: 300 });
                     };
                     scheduleIdleDecode(1);
                 };
@@ -171,8 +176,8 @@ export default function Hero() {
                     ease: 'none',
                     duration: 10,
                     onUpdate: () => {
-                        if (renderId) cancelAnimationFrame(renderId);
-                        renderId = requestAnimationFrame(() => render(seq.frame));
+                        if (renderIdRef.current !== null) cancelAnimationFrame(renderIdRef.current);
+                        renderIdRef.current = requestAnimationFrame(() => render(seq.frame));
                     },
                 },
                 0
