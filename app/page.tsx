@@ -11,6 +11,7 @@ import Skills from "./components/skills";
 import Projects from "./components/projects";
 import Contact from "./components/contact";
 import Footer from "./components/footer";
+import Preloader from "./components/preloader";
 
 export default function Home() {
   const cursorRef = useRef<HTMLDivElement>(null);
@@ -24,6 +25,7 @@ export default function Home() {
       {/* ELITE GLOBAL CUSTOM CURSOR */}
       {/* It sits on top of everything (z-[9999]) and uses mix-blend-difference for that premium inverted look */}
 
+      <Preloader />
 
       {/* PORTFOLIO ARCHITECTURE */}
       <Navbar />
