@@ -42,7 +42,7 @@ export default function Hero() {
             const img = imagesRef.current[Math.round(index)];
             if (!img?.complete || img.naturalWidth === 0) return;
 
-            context.clearRect(0, 0, canvas.width, canvas.height);
+
             const r = Math.max(canvas.width / img.width, canvas.height / img.height);
             const cx = (canvas.width - img.width * r) / 2;
             const cy = (canvas.height - img.height * r) / 2;
@@ -67,7 +67,7 @@ export default function Hero() {
                     for (let i = 0; i < FRAME_COUNT; i++) {
                         const img = new Image();
                         img.src = currentFrame(i);
-                        img.onload = () => { if (i === 0) render(0); };
+                        img.decode().then(() => { if (i === 0) render(0); }).catch(() => {});
                         imagesRef.current.push(img);
                     }
                 }
@@ -134,7 +134,7 @@ export default function Hero() {
 
             masterTL.to(
                 coreIdentityRef.current,
-                { y: -120, opacity: 0, filter: 'blur(20px)', duration: 2.5, ease: 'power2.inOut' },
+                { y: -120, opacity: 0, filter: 'blur(20px)', duration: 2.5, ease: 'power3.out' },
                 1.0
             );
 
@@ -148,7 +148,7 @@ export default function Hero() {
                 );
                 masterTL.to(
                     Array.from(summaryItems),
-                    { opacity: 0, y: -70, filter: 'blur(10px)', stagger: 0.2, duration: 1.0, ease: 'power2.in' },
+                    { opacity: 0, y: -70, filter: 'blur(10px)', stagger: 0.2, duration: 1.0, ease: 'power3.out' },
                     6.0
                 );
             }
@@ -161,14 +161,14 @@ export default function Hero() {
             );
             masterTL.to(
                 statsRef.current,
-                { opacity: 0, y: -50, duration: 1.0, ease: 'power2.in' },
+                { opacity: 0, y: -50, duration: 1.0, ease: 'power3.out' },
                 9.0
             );
 
             const onMouseMove = (e: MouseEvent) => {
                 const xP = e.clientX / window.innerWidth - 0.5;
                 const yP = e.clientY / window.innerHeight - 0.5;
-                gsap.to(coreIdentityRef.current, { x: xP * 25, y: yP * 25, duration: 1.2, ease: 'power2.out' });
+                gsap.to(coreIdentityRef.current, { x: xP * 25, y: yP * 25, duration: 1.2, ease: 'power3.out' });
             };
             window.addEventListener('mousemove', onMouseMove);
             
@@ -311,7 +311,7 @@ export default function Hero() {
                 </div>
 
                 <div
-                    className="summary-item opacity-0 p-8 md:p-10 rounded-3xl max-w-2xl"
+                    className="summary-item opacity-0 p-8 md:p-10 rounded-3xl max-w-2xl will-change-transform transform-gpu"
                     style={{
                         background: 'rgba(6,6,8,0.75)',
                         backdropFilter: 'blur(24px)',
@@ -344,7 +344,7 @@ export default function Hero() {
             >
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 max-w-5xl w-full">
                     <div
-                        className="lg:col-span-3 p-8 md:p-10 rounded-3xl flex flex-col justify-center"
+                        className="lg:col-span-3 p-8 md:p-10 rounded-3xl flex flex-col justify-center will-change-transform transform-gpu"
                         style={{
                             background: 'rgba(6,6,8,0.80)',
                             backdropFilter: 'blur(24px)',
@@ -390,7 +390,7 @@ export default function Hero() {
                         ].map((stat) => (
                             <div
                                 key={stat.label}
-                                className="p-5 rounded-2xl flex flex-col justify-center items-center text-center"
+                                className="p-5 rounded-2xl flex flex-col justify-center items-center text-center will-change-transform transform-gpu"
                                 style={{
                                     background: 'rgba(6,6,8,0.70)',
                                     backdropFilter: 'blur(16px)',

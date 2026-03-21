@@ -38,7 +38,6 @@ export default function About() {
 
             const img = imagesRef.current[Math.round(index)];
             if (img && img.complete && img.naturalWidth !== 0) {
-                context.clearRect(0, 0, canvas.width, canvas.height);
                 const r = Math.max(canvas.width / img.width, canvas.height / img.height);
                 const cx = (canvas.width - img.width * r) / 2;
                 const cy = (canvas.height - img.height * r) / 2;
@@ -63,7 +62,7 @@ export default function About() {
                     for (let i = 0; i < ABOUT_FRAME_COUNT; i++) {
                         const img = new Image();
                         img.src = currentFrame(i);
-                        img.onload = () => { if (i === 0) render(0); };
+                        img.decode().then(() => { if (i === 0) render(0); }).catch(() => {});
                         imagesRef.current.push(img);
                     }
                 }
@@ -156,7 +155,7 @@ export default function About() {
 
                             {/* Block 1 */}
                             <div ref={block1Ref} className="flex items-start gap-4 opacity-0">
-                                <div className="mt-1 p-2.5 rounded-2xl bg-white/[0.03] border border-white/10 shadow-[0_0_15px_rgba(0,229,255,0.15)] flex-shrink-0 backdrop-blur-md">
+                                <div className="mt-1 p-2.5 rounded-2xl bg-white/[0.03] border border-white/10 shadow-[0_0_15px_rgba(0,229,255,0.15)] flex-shrink-0 backdrop-blur-md will-change-transform transform-gpu">
                                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                                         <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
                                         <polyline points="2 17 12 22 22 17"></polyline>
@@ -173,7 +172,7 @@ export default function About() {
 
                             {/* Block 2 */}
                             <div ref={block2Ref} className="flex items-start gap-4 opacity-0">
-                                <div className="mt-1 p-2.5 rounded-2xl bg-white/[0.03] border border-white/10 shadow-[0_0_15px_rgba(167,139,250,0.15)] flex-shrink-0 backdrop-blur-md">
+                                <div className="mt-1 p-2.5 rounded-2xl bg-white/[0.03] border border-white/10 shadow-[0_0_15px_rgba(167,139,250,0.15)] flex-shrink-0 backdrop-blur-md will-change-transform transform-gpu">
                                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z"></path>
                                     </svg>
@@ -188,7 +187,7 @@ export default function About() {
 
                             {/* Block 3 */}
                             <div ref={block3Ref} className="flex items-start gap-4 opacity-0">
-                                <div className="mt-1 p-2.5 rounded-2xl bg-white/[0.03] border border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.1)] flex-shrink-0 backdrop-blur-md">
+                                <div className="mt-1 p-2.5 rounded-2xl bg-white/[0.03] border border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.1)] flex-shrink-0 backdrop-blur-md will-change-transform transform-gpu">
                                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F5F0E8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                                         <polyline points="4 17 10 11 4 5"></polyline>
                                         <line x1="12" y1="19" x2="20" y2="19"></line>

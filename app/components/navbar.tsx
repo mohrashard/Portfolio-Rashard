@@ -90,7 +90,7 @@ export default function Navbar() {
             >
                 <div
                     className={`flex justify-between items-center transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-auto ${isScrolled
-                        ? 'w-[90%] md:w-[75%] lg:w-[60%] max-w-4xl bg-[rgba(6,6,8,0.7)] backdrop-blur-2xl border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.1)] rounded-full px-6 md:px-8 py-3.5'
+                        ? 'w-[90%] md:w-[75%] lg:w-[60%] max-w-4xl bg-[rgba(6,6,8,0.7)] backdrop-blur-2xl border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.1)] rounded-full px-6 md:px-8 py-3.5 will-change-transform transform-gpu'
                         : 'w-full max-w-7xl bg-transparent border-transparent px-0 py-0'
                         }`}
                 >

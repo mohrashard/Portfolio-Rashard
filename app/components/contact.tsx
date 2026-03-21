@@ -33,7 +33,6 @@ export default function Contact() {
 
             const img = imagesRef.current[Math.round(index)];
             if (img && img.complete && img.naturalWidth !== 0) {
-                context.clearRect(0, 0, canvas.width, canvas.height);
                 const r = Math.max(canvas.width / img.width, canvas.height / img.height);
                 const cx = (canvas.width - img.width * r) / 2;
                 const cy = (canvas.height - img.height * r) / 2;
@@ -58,7 +57,7 @@ export default function Contact() {
                     for (let i = 0; i < CONTACT_FRAME_COUNT; i++) {
                         const img = new Image();
                         img.src = currentFrame(i);
-                        img.onload = () => { if (i === 0) render(0); };
+                        img.decode().then(() => { if (i === 0) render(0); }).catch(() => {});
                         imagesRef.current.push(img);
                     }
                 }
@@ -134,7 +133,7 @@ export default function Contact() {
                     opacity: 1,
                     y: 0,
                     duration: 1.2,
-                    ease: "power2.out",
+                    ease: "power3.out",
                     scrollTrigger: {
                         trigger: container,
                         start: "top -10%"
@@ -194,7 +193,7 @@ export default function Contact() {
                         {/* Email Node */}
                         <a
                             href="mailto:mohrashard@gmail.com"
-                            className="contact-node transform-style-3d group relative flex flex-col md:flex-row md:items-center justify-between p-8 md:p-10 rounded-3xl bg-white/[0.02] border border-white/5 overflow-hidden transition-all duration-500 hover:bg-white/[0.04] hover:border-white/20 hover:shadow-[0_0_40px_rgba(0,229,255,0.1)]"
+                            className="contact-node transform-style-3d group relative flex flex-col md:flex-row md:items-center justify-between p-8 md:p-10 rounded-3xl bg-white/[0.02] border border-white/5 overflow-hidden transition-all duration-500 hover:bg-white/[0.04] hover:border-white/20 hover:shadow-[0_0_40px_rgba(0,229,255,0.1)] will-change-transform transform-gpu"
                         >
                             {/* Hover Sweep Line */}
                             <div className="absolute left-0 bottom-0 h-1 w-0 bg-[#00E5FF] transition-all duration-700 ease-out group-hover:w-full" />
@@ -218,7 +217,7 @@ export default function Contact() {
                         <a
                             href="https://www.linkedin.com/in/mohamedrashard"
                             target="_blank" rel="noopener noreferrer"
-                            className="contact-node transform-style-3d group relative flex flex-col md:flex-row md:items-center justify-between p-8 md:p-10 rounded-3xl bg-white/[0.02] border border-white/5 overflow-hidden transition-all duration-500 hover:bg-white/[0.04] hover:border-white/20 hover:shadow-[0_0_40px_rgba(123,94,167,0.15)]"
+                            className="contact-node transform-style-3d group relative flex flex-col md:flex-row md:items-center justify-between p-8 md:p-10 rounded-3xl bg-white/[0.02] border border-white/5 overflow-hidden transition-all duration-500 hover:bg-white/[0.04] hover:border-white/20 hover:shadow-[0_0_40px_rgba(123,94,167,0.15)] will-change-transform transform-gpu"
                         >
                             {/* Hover Sweep Line */}
                             <div className="absolute left-0 bottom-0 h-1 w-0 bg-[#7B5EA7] transition-all duration-700 ease-out group-hover:w-full" />

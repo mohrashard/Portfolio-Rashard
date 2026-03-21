@@ -214,7 +214,7 @@ function FloatingNodes({ skills }: { skills: { name: string, sym: string, color:
                         scale: isMobile ? 0.8 : 1,
                         duration: 1.2,
                         delay: i * 0.05,
-                        ease: "back.out(1.2)",
+                        ease: "expo.out",
                         onComplete: () => {
                             // 3. Continuous Zero-Gravity Float
                             gsap.to(node, {
@@ -243,7 +243,7 @@ function FloatingNodes({ skills }: { skills: { name: string, sym: string, color:
                 <div
                     key={`${skill.name}-${i}`}
                     ref={(el) => { nodesRef.current[i] = el; }}
-                    className="absolute flex flex-col items-center justify-center transform-style-3d cursor-default group hover:z-50 transition-shadow duration-300"
+                    className="absolute flex flex-col items-center justify-center transform-style-3d cursor-default group hover:z-50 transition-shadow duration-300 will-change-transform transform-gpu"
                     aria-label={`Skill: ${skill.name}`}
                     style={{
                         width: '85px',

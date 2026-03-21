@@ -85,7 +85,6 @@ export default function Projects() {
 
             const img = imagesRef.current[Math.round(index)];
             if (img && img.complete && img.naturalWidth !== 0) {
-                context.clearRect(0, 0, canvas.width, canvas.height);
                 const r = Math.max(canvas.width / img.width, canvas.height / img.height);
                 const cx = (canvas.width - img.width * r) / 2;
                 const cy = (canvas.height - img.height * r) / 2;
@@ -110,7 +109,7 @@ export default function Projects() {
                     for (let i = 0; i < PROJECT_FRAME_COUNT; i++) {
                         const img = new Image();
                         img.src = currentFrame(i);
-                        img.onload = () => { if (i === 0) render(0); };
+                        img.decode().then(() => { if (i === 0) render(0); }).catch(() => {});
                         imagesRef.current.push(img);
                     }
                 }
@@ -201,7 +200,7 @@ export default function Projects() {
                     className="absolute inset-0 w-full h-full object-cover"
                     aria-label="3D background animation showing project evolution"
                 />
-                <div className="absolute inset-0 bg-gradient-to-b from-[#060608] via-[#060608]/75 to-[#060608] backdrop-blur-[2px]" />
+                <div className="absolute inset-0 bg-gradient-to-b from-[#060608] via-[#060608]/75 to-[#060608] backdrop-blur-[2px] will-change-transform transform-gpu" />
             </div>
 
             {/* ── NORMAL SCROLLING CONTENT ───────────────────────────────────── */}
@@ -223,11 +222,11 @@ export default function Projects() {
                         <div
                             key={idx}
                             ref={(el) => { cardsRef.current[idx] = el; }}
-                            className="w-full transform-style-3d transition-transform duration-500 hover:!-translate-y-4"
+                            className="w-full transform-style-3d transition-transform duration-500 hover:!-translate-y-4 will-change-transform transform-gpu"
                             aria-label={`Featured Project: ${project.title}`}
                         >
                             <div
-                                className="group relative p-8 md:p-10 rounded-3xl overflow-hidden transition-all duration-500 h-full flex flex-col justify-between"
+                                className="group relative p-8 md:p-10 rounded-3xl overflow-hidden transition-all duration-500 h-full flex flex-col justify-between will-change-transform transform-gpu"
                                 style={{
                                     background: 'rgba(13, 13, 16, 0.65)',
                                     backdropFilter: 'blur(16px)',
