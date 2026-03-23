@@ -62,7 +62,7 @@ export default function About() {
                 }
             });
 
-            tl2.to(seq, { frame: totalFrames - 1, snap: 'frame', ease: 'none', duration: 10, onUpdate: () => scheduleRender(seq.frame) }, 0);
+            tl2.to(seq, { frame: totalFrames - 1, snap: 'frame', ease: 'none', duration: 10, onUpdate: () => scheduleRender(() => seq.frame) }, 0);
 
             tl2.fromTo(headerRef.current, { opacity: 0, y: 30, filter: 'blur(10px)' }, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 1.5, ease: 'power3.out' }, 0.5);
             tl2.fromTo(block1Ref.current, { opacity: 0, x: 40 }, { opacity: 1, x: 0, duration: 1.5, ease: 'power3.out' }, 2.0);

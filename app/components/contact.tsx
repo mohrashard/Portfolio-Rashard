@@ -58,7 +58,7 @@ export default function Contact() {
                     scrub: 1.5,
                     onRefresh: () => render(seq.frame)
                 },
-                onUpdate: () => scheduleRender(seq.frame)
+                onUpdate: () => scheduleRender(() => seq.frame)
             });
 
             // ── Theater Curtain Headline Reveal ──

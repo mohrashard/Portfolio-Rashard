@@ -111,7 +111,7 @@ export default function Projects() {
                     pinSpacing: false,
                     onRefresh: () => render(seq.frame)
                 },
-                onUpdate: () => scheduleRender(seq.frame)
+                onUpdate: () => scheduleRender(() => seq.frame)
             });
 
             cardsRef.current.forEach((card) => {

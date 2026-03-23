@@ -100,7 +100,7 @@ export default function Hero() {
                     snap: 'frame',
                     ease: 'none',
                     duration: 10,
-                    onUpdate: () => scheduleRender(seq.frame),
+                    onUpdate: () => scheduleRender(() => seq.frame),
                 },
                 0
             );

@@ -24,8 +24,12 @@ interface UseCanvasSequenceOptions {
 interface CanvasSequenceHandles {
     /** Call once when the section enters the viewport to start loading. */
     loadImages: () => void;
-    /** Call from GSAP onUpdate – coalesces into one rAF per display frame. */
-    scheduleRender: (frameIndex: number) => void;
+    /**
+     * Call from GSAP onUpdate with a getter: scheduleRender(() => seq.frame)
+     * Accepts a GETTER so the rAF always reads the freshest frame — avoids
+     * the stale-capture freeze when GSAP scrub settles mid-animation.
+     */
+    scheduleRender: (getFrame: () => number) => void;
     /** Call on resize and onRefresh. Recalculates backing-store size. */
     setSize: () => void;
     /** Immediately render a specific frame index (for onRefresh). */
@@ -113,15 +117,23 @@ export function useCanvasSequence({
     }, [canvasRef, getCtx]);
 
     // ── scheduleRender: rAF coalescing lock ───────────────────────────────────
-    // GSAP's scrub can fire onUpdate at 120Hz on ProMotion displays.
-    // A boolean flag prevents scheduling more than one rAF per display frame —
-    // cheaper than cancelAnimationFrame() which allocates a new ID every tick.
-    const scheduleRender = useCallback((index: number) => {
+    // GSAP scrub fires onUpdate many times per display frame. A boolean flag
+    // prevents scheduling more than one rAF per screen refresh cycle.
+    //
+    // KEY FIX: we accept a GETTER function and store the latest frame in
+    // pendingFrameRef. The rAF callback reads pendingFrameRef.current at fire
+    // time — NEVER the stale value captured when the first call was made.
+    // This eliminates the scroll-freeze bug where GSAP settled on its scrub
+    // target before the rAF fired, locking the canvas on a stale frame.
+    const pendingFrameRef = useRef(0);
+    const scheduleRender = useCallback((getFrame: () => number) => {
+        // Always update the latest desired frame, even if a rAF is already pending
+        pendingFrameRef.current = getFrame();
         if (renderPendingRef.current) return;
         renderPendingRef.current = true;
         requestAnimationFrame(() => {
             renderPendingRef.current = false;
-            render(index);
+            render(pendingFrameRef.current); // read LATEST, not captured value
         });
     }, [render]);
 
