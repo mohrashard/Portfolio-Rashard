@@ -3,19 +3,13 @@
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger, SplitText } from 'gsap/all';
+import { useCanvasSequence } from '../hooks/useCanvasSequence';
 
 if (typeof window !== 'undefined') {
     gsap.registerPlugin(ScrollTrigger, SplitText);
 }
 
 const FRAME_COUNT = 121;
-
-// ── SAFARI POLYFILL: requestIdleCallback is undefined on WebKit/iOS ───────────
-// Safari will silently crash the decode chain without this guard.
-const requestIdle: (cb: () => void, opts?: { timeout: number }) => void =
-    typeof window !== 'undefined' && 'requestIdleCallback' in window
-        ? (window as any).requestIdleCallback
-        : (cb: () => void) => setTimeout(cb, 1);
 
 export default function Hero() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -29,106 +23,36 @@ export default function Hero() {
     const lastNameRef = useRef<HTMLSpanElement>(null);
     const roleRef = useRef<HTMLParagraphElement>(null);
 
-    const imagesRef = useRef<HTMLImageElement[]>([]);
-    // ── useRef for rAF ID: persists across renders so cancelAnimationFrame clears the right ID
-    const renderIdRef = useRef<number | null>(null);
+    const { loadImages, scheduleRender, setSize, render, purge } = useCanvasSequence({
+        canvasRef,
+        frameCount: FRAME_COUNT,
+        frameDir: 'herosec',
+    });
 
     useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
 
         let ctx: gsap.Context;
+        // seq.frame is a plain number that GSAP tweens; the hook converts it to an index
         const seq = { frame: 0 };
+        const isMobile = window.innerWidth < 768;
+        const frameStep = isMobile ? 2 : 1;
+        const totalFrames = Math.floor((FRAME_COUNT - 1) / frameStep) + 1;
 
-        const currentFrame = (i: number) =>
-            `/frames/herosec/frame_${(i + 1).toString().padStart(3, '0')}.jpg`;
-
-        const render = (index: number) => {
-            const canvas = canvasRef.current;
-            // ── APPLE-TIER CONTEXT: alpha:false skips transparency compositing (-30% GPU cost)
-            // desynchronized:true paints direct to screen, bypassing compositor queue
-            const context = canvas?.getContext('2d', { alpha: false, desynchronized: true });
-            if (!canvas || !context) return;
-
-            const img = imagesRef.current[Math.min(Math.max(Math.round(index), 0), imagesRef.current.length - 1)];
-            if (!img || !img.complete || img.naturalWidth === 0) return;
-
-            const dpr = parseFloat(canvas.dataset.dpr || '1');
-            const displayW = canvas.width / dpr;
-            const displayH = canvas.height / dpr;
-            const r = Math.max(displayW / img.width, displayH / img.height);
-            const cx = (displayW - img.width * r) / 2;
-            const cy = (displayH - img.height * r) / 2;
-            context.drawImage(img, 0, 0, img.width, img.height, cx, cy, img.width * r, img.height * r);
-        };
-
-        // Track last width to prevent Y-axis resize thrashing on mobile (address bar show/hide)
-        let lastWidth = 0;
-        const setCanvasSize = () => {
-            const canvas = canvasRef.current;
-            const context = canvas?.getContext('2d', { alpha: false, desynchronized: true });
-            if (!canvas || !context) return;
-            if (window.innerWidth === lastWidth) return; // Only recalculate on width changes
-            lastWidth = window.innerWidth;
-            // Cap DPR: 1.5x on mobile saves significant GPU memory vs native 3x
-            const isMobileView = window.innerWidth < 768;
-            const dpr = isMobileView
-                ? Math.min(window.devicePixelRatio || 1, 1.5)
-                : Math.min(window.devicePixelRatio || 1, 2);
-            canvas.dataset.dpr = String(dpr);
-            canvas.width = window.innerWidth * dpr;
-            canvas.height = window.innerHeight * dpr;
-            canvas.style.width = '100vw';
-            canvas.style.height = '100dvh';
-            context.scale(dpr, dpr);
-            context.imageSmoothingEnabled = true;
-            context.imageSmoothingQuality = 'high';
-        };
-
-        // ── 2. GSAP CONTEXT ───────────────────────────────────────────────
+        // ── GSAP CONTEXT ─────────────────────────────────────────────────
         ctx = gsap.context(() => {
-            setCanvasSize();
+            setSize();
 
-            const isMobile = window.innerWidth < 768;
-            const frameStep = isMobile ? 2 : 1;
-            const totalFrames = Math.floor((FRAME_COUNT - 1) / frameStep) + 1;
-
-            const loadImages = () => {
-                if (imagesRef.current[0]) return;
-
-                // Pre-allocate array to totalFrames length to prevent index-based race condition
-                imagesRef.current = new Array(totalFrames);
-
-                const firstImg = new Image();
-                firstImg.src = currentFrame(0);
-                firstImg.onload = () => {
-                    imagesRef.current[0] = firstImg;
-                    render(0);
-
-                    // Throttle decoding via requestIdleCallback so the scroll thread stays free
-                    const scheduleIdleDecode = (i: number) => {
-                        if (i >= totalFrames) return;
-                        const decode = () => {
-                            const img = new Image();
-                            img.src = currentFrame(i * frameStep);
-                            imagesRef.current[i] = img;
-                            img.decode().catch(() => { }).finally(() => scheduleIdleDecode(i + 1));
-                        };
-                        requestIdle(decode, { timeout: 300 });
-                    };
-                    scheduleIdleDecode(1);
-                };
-            };
-
-            // ── 1. JUST-IN-TIME LOADING VIA SCROLLTRIGGER ──────────────────
+            // ── JIT LOADING via ScrollTrigger ──────────────────────────────
             ScrollTrigger.create({
                 trigger: container,
-                start: "top bottom+=1000px",
-                end: "bottom top-=1000px",
+                start: 'top bottom+=1000px',
+                end: 'bottom top-=1000px',
                 onEnter: loadImages,
                 onEnterBack: loadImages,
-                onLeave: () => { imagesRef.current = []; },
-                onLeaveBack: () => { imagesRef.current = []; }
+                onLeave: purge,
+                onLeaveBack: purge,
             });
 
             const splitFirst = firstNameRef.current ? new SplitText(firstNameRef.current, { type: 'chars' }) : null;
@@ -166,8 +90,9 @@ export default function Hero() {
                 },
             });
 
-            // ── rAF-batched render: prevents GSAP firing faster than screen refresh rate
-            let renderId: number;
+            // ── rAF-coalesced render ────────────────────────────────────────
+            // scheduleRender() uses a boolean lock so at most one rAF fires per
+            // display frame, even when GSAP ticks at 120Hz on ProMotion displays.
             masterTL.to(
                 seq,
                 {
@@ -175,10 +100,7 @@ export default function Hero() {
                     snap: 'frame',
                     ease: 'none',
                     duration: 10,
-                    onUpdate: () => {
-                        if (renderIdRef.current !== null) cancelAnimationFrame(renderIdRef.current);
-                        renderIdRef.current = requestAnimationFrame(() => render(seq.frame));
-                    },
+                    onUpdate: () => scheduleRender(seq.frame),
                 },
                 0
             );
@@ -224,7 +146,7 @@ export default function Hero() {
             window.addEventListener('mousemove', onMouseMove);
 
             const handleResize = () => {
-                setCanvasSize();
+                setSize();
                 render(seq.frame);
             };
             window.addEventListener('resize', handleResize);
@@ -237,9 +159,9 @@ export default function Hero() {
 
         return () => {
             ctx.revert();
-            imagesRef.current = [];
+            purge();
         };
-    }, []);
+    }, [loadImages, scheduleRender, setSize, render, purge]);
 
     return (
         <section ref={containerRef} id="home" className="relative w-full h-screen overflow-hidden bg-[#060608]">

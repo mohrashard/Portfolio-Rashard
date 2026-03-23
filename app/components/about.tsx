@@ -3,18 +3,13 @@
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/all';
+import { useCanvasSequence } from '../hooks/useCanvasSequence';
 
 if (typeof window !== 'undefined') {
     gsap.registerPlugin(ScrollTrigger);
 }
 
 const ABOUT_FRAME_COUNT = 121;
-
-// ── SAFARI POLYFILL: requestIdleCallback is undefined on WebKit/iOS ───────────
-const requestIdle: (cb: () => void, opts?: { timeout: number }) => void =
-    typeof window !== 'undefined' && 'requestIdleCallback' in window
-        ? (window as any).requestIdleCallback
-        : (cb: () => void) => setTimeout(cb, 1);
 
 export default function About() {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -27,9 +22,11 @@ export default function About() {
     const block3Ref = useRef<HTMLDivElement>(null);
     const btnRef = useRef<HTMLDivElement>(null);
 
-    const imagesRef = useRef<HTMLImageElement[]>([]);
-    // ── useRef for rAF ID to survive re-renders
-    const renderIdRef = useRef<number | null>(null);
+    const { loadImages, scheduleRender, setSize, render, purge } = useCanvasSequence({
+        canvasRef,
+        frameCount: ABOUT_FRAME_COUNT,
+        frameDir: 'about',
+    });
 
     useEffect(() => {
         const container = containerRef.current;
@@ -37,89 +34,21 @@ export default function About() {
 
         let ctx: gsap.Context;
         const seq = { frame: 0 };
-        const currentFrame = (i: number) => `/frames/about/frame_${(i + 1).toString().padStart(3, '0')}.jpg`;
+        const isMobile = window.innerWidth < 768;
+        const frameStep = isMobile ? 2 : 1;
+        const totalFrames = Math.floor((ABOUT_FRAME_COUNT - 1) / frameStep) + 1;
 
-        const render = (index: number) => {
-            const canvas = canvasRef.current;
-            // ── APPLE-TIER CONTEXT: alpha:false + desynchronized:true
-            const context = canvas?.getContext('2d', { alpha: false, desynchronized: true });
-            if (!canvas || !context) return;
-
-            const img = imagesRef.current[Math.min(Math.max(Math.round(index), 0), imagesRef.current.length - 1)];
-            if (!img || !img.complete || img.naturalWidth === 0) return;
-            const dpr = parseFloat(canvas.dataset.dpr || '1');
-            const displayW = canvas.width / dpr;
-            const displayH = canvas.height / dpr;
-            const r = Math.max(displayW / img.width, displayH / img.height);
-            const cx = (displayW - img.width * r) / 2;
-            const cy = (displayH - img.height * r) / 2;
-            context.drawImage(img, 0, 0, img.width, img.height, cx, cy, img.width * r, img.height * r);
-        };
-
-        let lastWidth = 0;
-        const setSize = () => {
-            const canvas = canvasRef.current;
-            const context = canvas?.getContext('2d', { alpha: false, desynchronized: true });
-            if (!canvas || !context) return;
-            if (window.innerWidth === lastWidth) return;
-            lastWidth = window.innerWidth;
-            const isMobileView = window.innerWidth < 768;
-            const dpr = isMobileView
-                ? Math.min(window.devicePixelRatio || 1, 1.5)
-                : Math.min(window.devicePixelRatio || 1, 2);
-            canvas.dataset.dpr = String(dpr);
-            canvas.width = window.innerWidth * dpr;
-            canvas.height = window.innerHeight * dpr;
-            canvas.style.width = '100vw';
-            canvas.style.height = '100dvh';
-            context.scale(dpr, dpr);
-            context.imageSmoothingEnabled = true;
-            context.imageSmoothingQuality = 'high';
-        };
-
-        // ── 2. GSAP CONTEXT ──────────────────────────────────────────────
         ctx = gsap.context(() => {
             setSize();
 
-            const isMobile = window.innerWidth < 768;
-            const frameStep = isMobile ? 2 : 1;
-            const totalFrames = Math.floor((ABOUT_FRAME_COUNT - 1) / frameStep) + 1;
-
-            const loadImages = () => {
-                if (imagesRef.current[0]) return;
-
-                // Pre-allocate array to totalFrames length to prevent index-based race condition
-                imagesRef.current = new Array(totalFrames);
-
-                const firstImg = new Image();
-                firstImg.src = currentFrame(0);
-                firstImg.onload = () => {
-                    imagesRef.current[0] = firstImg;
-                    render(0);
-
-                    const scheduleIdleDecode = (i: number) => {
-                        if (i >= totalFrames) return;
-                        const decode = () => {
-                            const img = new Image();
-                            img.src = currentFrame(i * frameStep);
-                            imagesRef.current[i] = img;
-                            img.decode().catch(() => {}).finally(() => scheduleIdleDecode(i + 1));
-                        };
-                        requestIdle(decode, { timeout: 300 });
-                    };
-                    scheduleIdleDecode(1);
-                };
-            };
-
-            // ── 1. JUST-IN-TIME LOADING VIA SCROLLTRIGGER ──────────────────
             ScrollTrigger.create({
                 trigger: container,
-                start: "top bottom+=1000px",
-                end: "bottom top-=1000px",
+                start: 'top bottom+=1000px',
+                end: 'bottom top-=1000px',
                 onEnter: loadImages,
                 onEnterBack: loadImages,
-                onLeave: () => { imagesRef.current = []; },
-                onLeaveBack: () => { imagesRef.current = []; }
+                onLeave: purge,
+                onLeaveBack: purge,
             });
 
             const tl2 = gsap.timeline({
@@ -133,11 +62,7 @@ export default function About() {
                 }
             });
 
-            // ── rAF-batched render: prevents GSAP firing faster than screen refresh rate
-            tl2.to(seq, { frame: totalFrames - 1, snap: 'frame', ease: 'none', duration: 10, onUpdate: () => {
-                if (renderIdRef.current !== null) cancelAnimationFrame(renderIdRef.current);
-                renderIdRef.current = requestAnimationFrame(() => render(seq.frame));
-            } }, 0);
+            tl2.to(seq, { frame: totalFrames - 1, snap: 'frame', ease: 'none', duration: 10, onUpdate: () => scheduleRender(seq.frame) }, 0);
 
             tl2.fromTo(headerRef.current, { opacity: 0, y: 30, filter: 'blur(10px)' }, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 1.5, ease: 'power3.out' }, 0.5);
             tl2.fromTo(block1Ref.current, { opacity: 0, x: 40 }, { opacity: 1, x: 0, duration: 1.5, ease: 'power3.out' }, 2.0);
@@ -155,9 +80,9 @@ export default function About() {
 
         return () => {
             ctx.revert();
-            imagesRef.current = [];
+            purge();
         };
-    }, []);
+    }, [loadImages, scheduleRender, setSize, render, purge]);
 
     return (
         <section ref={containerRef} id="about" className="relative w-full h-screen bg-[#060608] overflow-hidden">
