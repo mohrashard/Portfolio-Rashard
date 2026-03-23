@@ -32,7 +32,7 @@ export default function Contact() {
 
         let ctx: gsap.Context;
         const seq = { frame: 0 };
-        const currentFrame = (i: number) => `/frames/contact/frame_${i.toString().padStart(3, '0')}.jpg`;
+        const currentFrame = (i: number) => `/frames/contact/frame_${(i + 1).toString().padStart(3, '0')}.jpg`;
 
         const render = (index: number) => {
             const canvas = canvasRef.current;

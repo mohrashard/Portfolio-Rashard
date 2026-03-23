@@ -84,7 +84,7 @@ export default function Projects() {
 
         let ctx: gsap.Context;
         const seq = { frame: 0 };
-        const currentFrame = (i: number) => `/frames/projects/frame_${i.toString().padStart(3, '0')}.jpg`;
+        const currentFrame = (i: number) => `/frames/projects/frame_${(i + 1).toString().padStart(3, '0')}.jpg`;
 
         const render = (index: number) => {
             const canvas = canvasRef.current;

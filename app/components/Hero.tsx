@@ -41,7 +41,7 @@ export default function Hero() {
         const seq = { frame: 0 };
 
         const currentFrame = (i: number) =>
-            `/frames/hero/frame_${i.toString().padStart(3, '0')}.jpg`;
+            `/frames/herosec/frame_${(i + 1).toString().padStart(3, '0')}.jpg`;
 
         const render = (index: number) => {
             const canvas = canvasRef.current;
@@ -112,7 +112,7 @@ export default function Hero() {
                             const img = new Image();
                             img.src = currentFrame(i * frameStep);
                             imagesRef.current[i] = img;
-                            img.decode().catch(() => {}).finally(() => scheduleIdleDecode(i + 1));
+                            img.decode().catch(() => { }).finally(() => scheduleIdleDecode(i + 1));
                         };
                         requestIdle(decode, { timeout: 300 });
                     };
@@ -222,7 +222,7 @@ export default function Hero() {
                 gsap.to(coreIdentityRef.current, { x: xP * 25, y: yP * 25, duration: 1.2, ease: 'power3.out' });
             };
             window.addEventListener('mousemove', onMouseMove);
-            
+
             const handleResize = () => {
                 setCanvasSize();
                 render(seq.frame);
@@ -243,8 +243,8 @@ export default function Hero() {
 
     return (
         <section ref={containerRef} id="home" className="relative w-full h-screen overflow-hidden bg-[#060608]">
-            <canvas 
-                ref={canvasRef} 
+            <canvas
+                ref={canvasRef}
                 className="absolute inset-0 w-full h-full object-cover opacity-80"
                 aria-label="Interactive 3D cinematic background animation"
             />
