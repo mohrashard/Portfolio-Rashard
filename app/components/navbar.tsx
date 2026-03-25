@@ -32,7 +32,8 @@ export default function Navbar() {
             for (let i = sections.length - 1; i >= 0; i--) {
                 const element = document.getElementById(sections[i]);
                 if (element) {
-                    const st = ScrollTrigger.getAll().find(t => t.trigger === element);
+                    // Ignore the aggressive early preload triggers which start 3000px early
+                    const st = ScrollTrigger.getAll().find(t => t.trigger === element && String(t.vars.start).indexOf('bottom+=3000') === -1);
                     const targetTop = st ? st.start : element.offsetTop;
 
                     if (targetTop <= scrollPos) {
@@ -59,8 +60,8 @@ export default function Navbar() {
         }
         const element = document.getElementById(id);
         if (element) {
-            // GSAP ScrollTrigger aware positioning
-            const st = ScrollTrigger.getAll().find(t => t.trigger === element);
+            // GSAP ScrollTrigger aware positioning. Ignore early preload triggers.
+            const st = ScrollTrigger.getAll().find(t => t.trigger === element && String(t.vars.start).indexOf('bottom+=3000') === -1);
             const offsetPosition = st ? st.start : element.offsetTop - 100;
 
             window.scrollTo({
@@ -90,7 +91,7 @@ export default function Navbar() {
             >
                 <div
                     className={`flex justify-between items-center transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-auto ${isScrolled
-                        ? 'w-[90%] md:w-[75%] lg:w-[60%] max-w-4xl bg-[rgba(6,6,8,0.7)] backdrop-blur-2xl border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.1)] rounded-full px-6 md:px-8 py-3.5 will-change-transform transform-gpu'
+                        ? 'w-[90%] md:w-[75%] lg:w-[60%] max-w-4xl backdrop-blur-none bg-[#060608]/98 md:bg-[rgba(6,6,8,0.7)] md:backdrop-blur-2xl border border-white/5 md:border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.1)] rounded-full px-6 md:px-8 py-3.5 will-change-transform transform-gpu'
                         : 'w-full max-w-7xl bg-transparent border-transparent px-0 py-0'
                         }`}
                 >

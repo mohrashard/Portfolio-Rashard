@@ -37,10 +37,14 @@ export default function Contact() {
         ctx = gsap.context(() => {
             setSize();
 
+            // ── LIFECYCLE TRIGGER ────────────────────────────────────────────────
+            // Manages aggressive preload and delayed purge. By placing purge 3000px 
+            // outside the visual boundary, we prevent lag when the user scrolls back 
+            // and forth across the exact boundary of the section.
             ScrollTrigger.create({
                 trigger: container,
-                start: 'top bottom+=1000px',
-                end: 'bottom top-=1000px',
+                start: 'top bottom+=3000',
+                end: 'bottom top-=3000',
                 onEnter: loadImages,
                 onEnterBack: loadImages,
                 onLeave: purge,
@@ -56,6 +60,7 @@ export default function Contact() {
                     start: "top top",
                     end: "bottom bottom",
                     scrub: 1.5,
+                    // Load/purge is handled by the Lifecycle Trigger above to provide a 3000px safe zone
                     onRefresh: () => render(seq.frame)
                 },
                 onUpdate: () => scheduleRender(() => seq.frame)

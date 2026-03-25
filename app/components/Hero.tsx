@@ -44,17 +44,6 @@ export default function Hero() {
         ctx = gsap.context(() => {
             setSize();
 
-            // ── JIT LOADING via ScrollTrigger ──────────────────────────────
-            ScrollTrigger.create({
-                trigger: container,
-                start: 'top bottom+=1000px',
-                end: 'bottom top-=1000px',
-                onEnter: loadImages,
-                onEnterBack: loadImages,
-                onLeave: purge,
-                onLeaveBack: purge,
-            });
-
             const splitFirst = firstNameRef.current ? new SplitText(firstNameRef.current, { type: 'chars' }) : null;
             const splitMiddle = middleNameRef.current ? new SplitText(middleNameRef.current, { type: 'chars' }) : null;
             const splitLast = lastNameRef.current ? new SplitText(lastNameRef.current, { type: 'chars' }) : null;
@@ -69,15 +58,29 @@ export default function Hero() {
             entranceTL
                 .fromTo(
                     allNameChars,
-                    { opacity: 0, y: 60, filter: 'blur(12px)' },
-                    { opacity: 1, y: 0, filter: 'blur(0px)', stagger: 0.03 }
+                    { opacity: 0, y: 60 },
+                    { opacity: 1, y: 0, stagger: 0.03 }
                 )
                 .fromTo(
                     roleRef.current,
-                    { opacity: 0, y: 20, filter: 'blur(4px)' },
-                    { opacity: 1, y: 0, filter: 'blur(0px)' },
+                    { opacity: 0, y: 20 },
+                    { opacity: 1, y: 0 },
                     '-=1.0'
                 );
+
+            // ── LIFECYCLE TRIGGER ────────────────────────────────────────────────
+            // Manages aggressive preload and delayed purge. By placing purge 3000px 
+            // outside the visual boundary, we prevent lag when the user scrolls back 
+            // and forth across the exact boundary of the section.
+            ScrollTrigger.create({
+                trigger: container,
+                start: 'top bottom+=3000',
+                end: 'bottom+=4500 top-=3000', // Account for the 4500px pin duration so backwards scroll preloads correctly
+                onEnter: loadImages,
+                onEnterBack: loadImages,
+                onLeave: purge,
+                onLeaveBack: purge,
+            });
 
             const masterTL = gsap.timeline({
                 scrollTrigger: {
@@ -86,13 +89,12 @@ export default function Hero() {
                     end: '+=4500',
                     scrub: 0.8,
                     pin: true,
+                    // Load/purge is handled by the Lifecycle Trigger above to provide a 3000px safe zone
                     onRefresh: () => render(seq.frame)
                 },
             });
 
             // ── rAF-coalesced render ────────────────────────────────────────
-            // scheduleRender() uses a boolean lock so at most one rAF fires per
-            // display frame, even when GSAP ticks at 120Hz on ProMotion displays.
             masterTL.to(
                 seq,
                 {
@@ -107,7 +109,7 @@ export default function Hero() {
 
             masterTL.to(
                 coreIdentityRef.current,
-                { y: -120, opacity: 0, filter: 'blur(20px)', duration: 2.5, ease: 'power3.out' },
+                { y: -120, opacity: 0, duration: 2.5, ease: 'power3.out' },
                 1.0
             );
 
@@ -115,13 +117,13 @@ export default function Hero() {
             if (summaryItems && summaryItems.length > 0) {
                 masterTL.fromTo(
                     Array.from(summaryItems),
-                    { opacity: 0, y: 70, filter: 'blur(10px)' },
-                    { opacity: 1, y: 0, filter: 'blur(0px)', stagger: 0.8, duration: 1.5, ease: 'power3.out' },
+                    { opacity: 0, y: 70 },
+                    { opacity: 1, y: 0, stagger: 0.8, duration: 1.5, ease: 'power3.out' },
                     3.5
                 );
                 masterTL.to(
                     Array.from(summaryItems),
-                    { opacity: 0, y: -70, filter: 'blur(10px)', stagger: 0.2, duration: 1.0, ease: 'power3.out' },
+                    { opacity: 0, y: -70, stagger: 0.2, duration: 1.0, ease: 'power3.out' },
                     6.0
                 );
             }
@@ -174,10 +176,10 @@ export default function Hero() {
             {/* Cinematic Overlays */}
             <div aria-hidden="true" className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,rgba(6,6,8,0.4)_0%,rgba(6,6,8,0.7)_60%,rgba(6,6,8,0.95)_100%)]" />
 
-            {/* Grain */}
+            {/* Grain (Hidden on mobile to save entire screen opacity blending calc) */}
             <div
                 aria-hidden="true"
-                className="absolute inset-0 pointer-events-none opacity-[0.035]"
+                className="absolute inset-0 pointer-events-none opacity-[0.035] hidden md:block"
                 style={{
                     backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
                 }}
@@ -283,10 +285,8 @@ export default function Hero() {
                 </div>
 
                 <div
-                    className="summary-item opacity-0 p-8 md:p-10 rounded-3xl max-w-2xl will-change-transform transform-gpu"
+                    className="summary-item opacity-0 p-8 md:p-10 rounded-3xl max-w-2xl will-change-transform transform-gpu backdrop-blur-none bg-[#060608]/95 md:bg-[rgba(6,6,8,0.75)] md:backdrop-blur-2xl"
                     style={{
-                        background: 'rgba(6,6,8,0.75)',
-                        backdropFilter: 'blur(24px)',
                         border: '1px solid rgba(255,255,255,0.12)',
                         boxShadow: '0 8px 60px rgba(0,0,0,0.6)',
                     }}
@@ -316,10 +316,8 @@ export default function Hero() {
             >
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 max-w-5xl w-full">
                     <div
-                        className="lg:col-span-3 p-8 md:p-10 rounded-3xl flex flex-col justify-center will-change-transform transform-gpu"
+                        className="lg:col-span-3 p-8 md:p-10 rounded-3xl flex flex-col justify-center will-change-transform transform-gpu backdrop-blur-none bg-[#060608]/95 md:bg-[rgba(6,6,8,0.80)] md:backdrop-blur-2xl"
                         style={{
-                            background: 'rgba(6,6,8,0.80)',
-                            backdropFilter: 'blur(24px)',
                             border: '1px solid rgba(255,255,255,0.10)',
                             boxShadow: '0 8px 60px rgba(0,0,0,0.6)',
                         }}
@@ -362,10 +360,8 @@ export default function Hero() {
                         ].map((stat) => (
                             <div
                                 key={stat.label}
-                                className="p-5 rounded-2xl flex flex-col justify-center items-center text-center will-change-transform transform-gpu"
+                                className="p-5 rounded-2xl flex flex-col justify-center items-center text-center will-change-transform transform-gpu backdrop-blur-none bg-[#060608]/95 md:bg-[rgba(6,6,8,0.70)] md:backdrop-blur-xl"
                                 style={{
-                                    background: 'rgba(6,6,8,0.70)',
-                                    backdropFilter: 'blur(16px)',
                                     border: '1px solid rgba(255,255,255,0.08)',
                                 }}
                             >

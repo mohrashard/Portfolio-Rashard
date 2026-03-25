@@ -41,10 +41,14 @@ export default function About() {
         ctx = gsap.context(() => {
             setSize();
 
+            // ── LIFECYCLE TRIGGER ────────────────────────────────────────────────
+            // Manages aggressive preload and delayed purge. By placing purge 3000px 
+            // outside the visual boundary, we prevent lag when the user scrolls back 
+            // and forth across the exact boundary of the section.
             ScrollTrigger.create({
                 trigger: container,
-                start: 'top bottom+=1000px',
-                end: 'bottom top-=1000px',
+                start: 'top bottom+=3000',
+                end: 'bottom+=4000 top-=3000', // Account for 4000px pin duration for backwards scroll preload
                 onEnter: loadImages,
                 onEnterBack: loadImages,
                 onLeave: purge,
@@ -58,13 +62,14 @@ export default function About() {
                     end: '+=4000',
                     scrub: 1.5,
                     pin: true,
+                    // Load/purge is handled by the Lifecycle Trigger above to provide a 3000px safe zone
                     onRefresh: () => render(seq.frame)
                 }
             });
 
             tl2.to(seq, { frame: totalFrames - 1, snap: 'frame', ease: 'none', duration: 10, onUpdate: () => scheduleRender(() => seq.frame) }, 0);
 
-            tl2.fromTo(headerRef.current, { opacity: 0, y: 30, filter: 'blur(10px)' }, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 1.5, ease: 'power3.out' }, 0.5);
+            tl2.fromTo(headerRef.current, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 1.5, ease: 'power3.out' }, 0.5);
             tl2.fromTo(block1Ref.current, { opacity: 0, x: 40 }, { opacity: 1, x: 0, duration: 1.5, ease: 'power3.out' }, 2.0);
             tl2.fromTo(block2Ref.current, { opacity: 0, x: 40 }, { opacity: 1, x: 0, duration: 1.5, ease: 'power3.out' }, 4.0);
             tl2.fromTo(block3Ref.current, { opacity: 0, x: 40 }, { opacity: 1, x: 0, duration: 1.5, ease: 'power3.out' }, 6.0);
@@ -128,7 +133,7 @@ export default function About() {
 
                             {/* Block 1 */}
                             <div ref={block1Ref} className="flex items-start gap-4 opacity-0">
-                                <div className="mt-1 p-2.5 rounded-2xl bg-white/[0.03] border border-white/10 shadow-[0_0_15px_rgba(0,229,255,0.15)] flex-shrink-0 backdrop-blur-md will-change-transform transform-gpu">
+                                <div className="mt-1 p-2.5 rounded-2xl bg-[#141418] md:bg-white/[0.03] border border-white/5 md:border-white/10 shadow-[0_0_15px_rgba(0,229,255,0.15)] flex-shrink-0 backdrop-blur-none md:backdrop-blur-md will-change-transform transform-gpu">
                                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                                         <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
                                         <polyline points="2 17 12 22 22 17"></polyline>
@@ -145,7 +150,7 @@ export default function About() {
 
                             {/* Block 2 */}
                             <div ref={block2Ref} className="flex items-start gap-4 opacity-0">
-                                <div className="mt-1 p-2.5 rounded-2xl bg-white/[0.03] border border-white/10 shadow-[0_0_15px_rgba(167,139,250,0.15)] flex-shrink-0 backdrop-blur-md will-change-transform transform-gpu">
+                                <div className="mt-1 p-2.5 rounded-2xl bg-[#141418] md:bg-white/[0.03] border border-white/5 md:border-white/10 shadow-[0_0_15px_rgba(167,139,250,0.15)] flex-shrink-0 backdrop-blur-none md:backdrop-blur-md will-change-transform transform-gpu">
                                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z"></path>
                                     </svg>
@@ -160,7 +165,7 @@ export default function About() {
 
                             {/* Block 3 */}
                             <div ref={block3Ref} className="flex items-start gap-4 opacity-0">
-                                <div className="mt-1 p-2.5 rounded-2xl bg-white/[0.03] border border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.1)] flex-shrink-0 backdrop-blur-md will-change-transform transform-gpu">
+                                <div className="mt-1 p-2.5 rounded-2xl bg-[#141418] md:bg-white/[0.03] border border-white/5 md:border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.1)] flex-shrink-0 backdrop-blur-none md:backdrop-blur-md will-change-transform transform-gpu">
                                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F5F0E8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                                         <polyline points="4 17 10 11 4 5"></polyline>
                                         <line x1="12" y1="19" x2="20" y2="19"></line>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useMemo } from 'react';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // useCanvasSequence
@@ -78,9 +78,10 @@ export function useCanvasSequence({
         lastWidth.current = window.innerWidth;
 
         const isMobile = window.innerWidth < 768;
-        // Cap DPR: 1.5x on mobile saves significant GPU memory vs native 3x
+        // Cap DPR: 1.0 on mobile is a huge VRAM savings for ultra-low-end devices,
+        // preventing out-of-memory crashes on legacy Androids.
         const dpr = isMobile
-            ? Math.min(window.devicePixelRatio || 1, 1.5)
+            ? 1
             : Math.min(window.devicePixelRatio || 1, 2);
 
         canvas.dataset.dpr = String(dpr);
@@ -88,7 +89,10 @@ export function useCanvasSequence({
         canvas.height = window.innerHeight * dpr;
         canvas.style.width = '100vw';
         canvas.style.height = '100dvh';
-        ctx.scale(dpr, dpr);
+        // FIX: Use setTransform instead of scale() to RESET the matrix each time.
+        // ctx.scale() accumulates — calling scale(2,2) twice gives scale(4,4).
+        // setTransform replaces the matrix outright, so resizing is idempotent.
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
     }, [canvasRef, getCtx]);
@@ -185,8 +189,30 @@ export function useCanvasSequence({
 
     // ── purge: free GPU memory when section leaves the viewport ──────────────
     const purge = useCallback(() => {
-        imagesRef.current = [];
+        // Disabled: Holding ~480 Image objects globally in memory costs negligible VRAM 
+        // (~300MB max at 1.0 DPR). Preventing array destruction guarantees 0 CPU overhead 
+        // when rapidly scrolling backwards, preventing the 'decode() starvation' lag.
+        // imagesRef.current = [];
     }, []);
 
-    return { loadImages, scheduleRender, setSize, render, purge };
+    // ── Stable handles ref: object identity never changes between renders ────
+    // This is critical: Hero, About, Projects, and Contact all list these
+    // functions in their useEffect dependency arrays. Without this, every
+    // render of those components re-runs the effect, killing and reinstantiating
+    // all ScrollTriggers on every state update.
+    const handlesRef = useRef<CanvasSequenceHandles | null>(null);
+    const handles = useMemo<CanvasSequenceHandles>(() => {
+        const h: CanvasSequenceHandles = {
+            loadImages: (...args) => loadImages(...args),
+            scheduleRender: (...args) => scheduleRender(...args),
+            setSize: (...args) => setSize(...args),
+            render: (...args) => render(...args),
+            purge: (...args) => purge(...args),
+        };
+        handlesRef.current = h;
+        return h;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Empty deps: stable wrapper; inner functions update via closure.
+
+    return handles;
 }

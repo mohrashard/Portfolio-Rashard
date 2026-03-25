@@ -91,8 +91,15 @@ export default function Skills() {
         // ── MOBILE FIX: min-h-screen on mobile, locked h-screen on desktop ──
         <section ref={sectionRef} id="skills" className="min-h-screen lg:h-screen lg:max-h-screen w-full bg-[#060608] relative overflow-hidden flex items-center justify-center p-4 md:p-8 lg:p-12 py-24 lg:py-0">
 
-            <div className="absolute top-1/2 left-1/4 w-[60vh] h-[60vh] bg-[#00E5FF]/5 rounded-full blur-[100px] pointer-events-none -translate-y-1/2" />
-            <div className="absolute top-1/2 right-1/4 w-[60vh] h-[60vh] bg-[#7B5EA7]/5 rounded-full blur-[100px] pointer-events-none -translate-y-1/2" />
+            {/* Decorative glow — CSS radial-gradients, zero compositor cost (no blur filter) */}
+            <div
+                className="absolute top-1/2 left-1/4 w-[60vh] h-[60vh] pointer-events-none -translate-y-1/2"
+                style={{ background: 'radial-gradient(circle, rgba(0,229,255,0.06) 0%, transparent 70%)' }}
+            />
+            <div
+                className="absolute top-1/2 right-1/4 w-[60vh] h-[60vh] pointer-events-none -translate-y-1/2"
+                style={{ background: 'radial-gradient(circle, rgba(123,94,167,0.06) 0%, transparent 70%)' }}
+            />
 
             <div className="w-full h-full max-w-[1600px] mx-auto flex flex-col lg:flex-row relative z-10 gap-8 lg:gap-12">
 
@@ -238,7 +245,9 @@ function FloatingNodes({ skills }: { skills: { name: string, sym: string, color:
     }, [skills]);
 
     return (
-        <div ref={containerRef} className="absolute inset-0 flex items-center justify-center pointer-events-auto perspective-1000">
+        // `contain: layout paint` isolates this component's compositing to its own layer,
+        // preventing repaints from bubbling up to the parent.
+        <div ref={containerRef} className="absolute inset-0 flex items-center justify-center pointer-events-auto perspective-1000" style={{ contain: 'layout paint' }}>
             {skills.map((skill, i) => (
                 <div
                     key={`${skill.name}-${i}`}
@@ -249,9 +258,10 @@ function FloatingNodes({ skills }: { skills: { name: string, sym: string, color:
                         width: '85px',
                         height: '85px',
                         borderRadius: '20px',
-                        // Base Glass Look
-                        background: `linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.01))`,
-                        backdropFilter: 'blur(20px)',
+                        // Solid background replaces backdropFilter:blur(20px).
+                        // Each blur created its own GPU compositing layer — 8 nodes = 8 layers.
+                        // A slightly opaque solid background is visually indistinguishable at this size.
+                        background: `linear-gradient(135deg, rgba(28,28,36,0.95), rgba(18,18,24,0.95))`,
                         borderTop: `1px solid rgba(255,255,255,0.4)`,
                         borderLeft: `1px solid rgba(255,255,255,0.2)`,
                         borderBottom: `1px solid rgba(0,0,0,0.5)`,
