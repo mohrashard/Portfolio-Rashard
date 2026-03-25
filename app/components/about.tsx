@@ -60,7 +60,9 @@ export default function About() {
                     trigger: container,
                     start: 'top top',
                     end: '+=4000',
-                    scrub: 1.5,
+                    // On mobile, native touch inertia is already perfectly smooth. Adding JS scrub delay
+                    // on top creates input lag. `true` locks the frame exactly to the physical finger.
+                    scrub: isMobile ? true : 1.5,
                     pin: true,
                     // Load/purge is handled by the Lifecycle Trigger above to provide a 3000px safe zone
                     onRefresh: () => render(seq.frame)

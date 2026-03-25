@@ -155,7 +155,9 @@ export function useCanvasSequence({
         if (imagesRef.current.length > 0 && imagesRef.current[0]) return;
 
         const isMobile = window.innerWidth < 768;
-        const frameStep = isMobile ? 2 : 1;
+        // MOBILE OPTIMIZATION: Use frameStep 3 (skip 2 frames) on mobile.
+        // Drops sequence from 121 -> 40 frames. Slashes mobile VRAM and HTTP load by 66%.
+        const frameStep = isMobile ? 3 : 1;
         const totalFrames = Math.floor((frameCount - 1) / frameStep) + 1;
 
         // Pre-allocate array to avoid dynamic resizing during the loop
@@ -178,21 +180,27 @@ export function useCanvasSequence({
         images[0].decode().then(() => {
             // Eager first-paint: draw frame 0 the instant it is GPU-ready
             render(0);
-            // Kick off decoding for all remaining frames in parallel.
-            // These fire off-main-thread; we don't need to await them — the
-            // render() guard (naturalWidth === 0) handles not-yet-decoded frames.
-            for (let i = 1; i < images.length; i++) {
-                images[i].decode().catch(() => { /* tolerate missing frames */ });
+            
+            // MOBILE CPU FIX: Do not instantly queue 40 concurrent decodes on mobile.
+            // It starves the weak mobile CPU cores and lags the main thread.
+            // They will naturally JIT-decode without lag right before they are drawn.
+            if (!isMobile) {
+                // Kick off decoding for all remaining frames in parallel on robust desktop CPUs.
+                for (let i = 1; i < images.length; i++) {
+                    images[i].decode().catch(() => { /* tolerate missing frames */ });
+                }
             }
         }).catch(() => { /* first frame failed — nothing to paint */ });
     }, [frameCount, frameUrl, render]);
 
     // ── purge: free GPU memory when section leaves the viewport ──────────────
     const purge = useCallback(() => {
-        // Disabled: Holding ~480 Image objects globally in memory costs negligible VRAM 
-        // (~300MB max at 1.0 DPR). Preventing array destruction guarantees 0 CPU overhead 
-        // when rapidly scrolling backwards, preventing the 'decode() starvation' lag.
-        // imagesRef.current = [];
+        // DESKTOP CPU FIX: Holding all images globally in memory costs negligible VRAM 
+        // (~300MB max) on desktop. Preventing array destruction guarantees 0 CPU overhead 
+        // when rapidly scrolling backwards.
+        // MOBILE FIX: We MUST purge on mobile to prevent Android VRAM Out-of-Memory crashes.
+        if (window.innerWidth >= 768) return;
+        imagesRef.current = [];
     }, []);
 
     // ── Stable handles ref: object identity never changes between renders ────
